@@ -1,6 +1,6 @@
 class Category {
   final String id;
-  String name;
+  final String name;
   final DateTime createdAt;
 
   Category({

@@ -13,9 +13,11 @@ class TaskListScreen extends StatefulWidget {
   _TaskListScreenState createState() => _TaskListScreenState();
 }
 
+enum TaskFilter { all, completed, incomplete, favourite }
+
 class _TaskListScreenState extends State<TaskListScreen> {
   List<Task> filteredTasks = [];
-  String filter = 'Все';
+  TaskFilter filter = TaskFilter.all;
 
   @override
   void initState() {
@@ -53,19 +55,19 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
   void applyFilter() {
     setState(() {
-      filteredTasks = widget.allTasks
-          .where((task) => task.categoryId == widget.category.id)
-          .toList();
-
-      if (filter == 'Завершенные') {
-        filteredTasks =
-            filteredTasks.where((task) => task.isCompleted).toList();
-      } else if (filter == 'Незавершенные') {
-        filteredTasks =
-            filteredTasks.where((task) => !task.isCompleted).toList();
-      } else if (filter == 'Избранные') {
-        filteredTasks =
-            filteredTasks.where((task) => task.isFavourite).toList();
+      switch (filter) {
+        case TaskFilter.all:
+          filteredTasks = widget.allTasks.where((task) => task.categoryId == widget.category.id).toList();
+          break;
+        case TaskFilter.completed:
+          filteredTasks = widget.allTasks.where((task) => task.categoryId == widget.category.id && task.isCompleted).toList();
+          break;
+        case TaskFilter.incomplete:
+          filteredTasks = widget.allTasks.where((task) => task.categoryId == widget.category.id && !task.isCompleted).toList();
+          break;
+        case TaskFilter.favourite:
+          filteredTasks = widget.allTasks.where((task) => task.categoryId == widget.category.id && task.isFavourite).toList();
+          break;
       }
     });
   }
@@ -76,28 +78,28 @@ class _TaskListScreenState extends State<TaskListScreen> {
       appBar: AppBar(
         title: Text(widget.category.name),
         actions: [
-          PopupMenuButton<String>(
-            onSelected: (String result) {
+          PopupMenuButton<TaskFilter>(
+            onSelected: (TaskFilter selectedFilter) {
               setState(() {
-                filter = result;
+                filter = selectedFilter;
                 applyFilter();
               });
             },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'Все',
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<TaskFilter>>[
+              const PopupMenuItem<TaskFilter>(
+                value: TaskFilter.all,
                 child: Text('Все'),
               ),
-              const PopupMenuItem<String>(
-                value: 'Завершенные',
+              const PopupMenuItem<TaskFilter>(
+                value: TaskFilter.completed,
                 child: Text('Завершенные'),
               ),
-              const PopupMenuItem<String>(
-                value: 'Незавершенные',
+              const PopupMenuItem<TaskFilter>(
+                value: TaskFilter.incomplete,
                 child: Text('Незавершенные'),
               ),
-              const PopupMenuItem<String>(
-                value: 'Избранные',
+              const PopupMenuItem<TaskFilter>(
+                value: TaskFilter.favourite,
                 child: Text('Избранные'),
               ),
             ],
