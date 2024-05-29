@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:todo/models/category.dart';
 import 'package:todo/models/task.dart';
 import 'package:uuid/uuid.dart';
+import 'package:todo/screens/task_detail_screen.dart';
 
 class TaskListScreen extends StatefulWidget {
   final Category category;
   final List<Task> allTasks;
 
-  const TaskListScreen({required this.category, required this.allTasks});
+  const TaskListScreen(
+      {super.key, required this.category, required this.allTasks});
 
   @override
   _TaskListScreenState createState() => _TaskListScreenState();
@@ -53,20 +55,49 @@ class _TaskListScreenState extends State<TaskListScreen> {
     });
   }
 
+  void onUpdate(Task updatedTask) {
+    setState(() {
+      final index =
+          widget.allTasks.indexWhere((task) => task.id == updatedTask.id);
+      if (index != -1) {
+        widget.allTasks[index] = updatedTask;
+        applyFilter();
+      }
+    });
+  }
+
+  void onDelete(Task taskToDelete) {
+    setState(() {
+      widget.allTasks.removeWhere((task) => task.id == taskToDelete.id);
+      applyFilter();
+    });
+  }
+
   void applyFilter() {
     setState(() {
       switch (filter) {
         case TaskFilter.all:
-          filteredTasks = widget.allTasks.where((task) => task.categoryId == widget.category.id).toList();
+          filteredTasks = widget.allTasks
+              .where((task) => task.categoryId == widget.category.id)
+              .toList();
           break;
         case TaskFilter.completed:
-          filteredTasks = widget.allTasks.where((task) => task.categoryId == widget.category.id && task.isCompleted).toList();
+          filteredTasks = widget.allTasks
+              .where((task) =>
+                  task.categoryId == widget.category.id && task.isCompleted)
+              .toList();
           break;
         case TaskFilter.incomplete:
-          filteredTasks = widget.allTasks.where((task) => task.categoryId == widget.category.id && !task.isCompleted).toList();
+          filteredTasks = widget.allTasks
+              .where((task) =>
+                  task.categoryId == widget.category.id && !task.isCompleted)
+              .toList();
           break;
         case TaskFilter.favourite:
-          filteredTasks = widget.allTasks.where((task) => task.categoryId == widget.category.id && task.isFavourite).toList();
+          filteredTasks = widget.allTasks
+              .where((task) =>
+                  task.categoryId == widget.category.id && task.isFavourite)
+              .toList();
           break;
       }
     });
@@ -129,23 +160,40 @@ class _TaskListScreenState extends State<TaskListScreen> {
                 ],
               ),
             ),
-            child: ListTile(
-              title: Text(task.title),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: Icon(task.isCompleted
-                        ? Icons.check_box
-                        : Icons.check_box_outline_blank),
-                    onPressed: () => toggleCompleted(task.id),
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TaskDetailScreen(
+                      task: task,
+                      onUpdate: onUpdate,
+                      onDelete: (task) {
+                        onDelete(task);
+                        Navigator.pop(context);
+                      },
+                    ),
                   ),
-                  IconButton(
-                    icon:
-                        Icon(task.isFavourite ? Icons.star : Icons.star_border),
-                    onPressed: () => toggleFavourite(task.id),
-                  ),
-                ],
+                );
+              },
+              child: ListTile(
+                title: Text(task.title),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(task.isCompleted
+                          ? Icons.check_box
+                          : Icons.check_box_outline_blank),
+                      onPressed: () => toggleCompleted(task.id),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                          task.isFavourite ? Icons.star : Icons.star_border),
+                      onPressed: () => toggleFavourite(task.id),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -170,7 +218,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
 class AddTaskDialog extends StatefulWidget {
   final String categoryId;
 
-  const AddTaskDialog({required this.categoryId});
+  const AddTaskDialog({super.key, required this.categoryId});
 
   @override
   _AddTaskDialogState createState() => _AddTaskDialogState();

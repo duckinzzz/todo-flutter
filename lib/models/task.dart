@@ -1,7 +1,7 @@
 class Task {
   final String id;
-  final String title;
-  final String description;
+  String title;
+  String description;
   final String categoryId;
   bool isCompleted;
   bool isFavourite;
@@ -15,4 +15,11 @@ class Task {
       this.isCompleted = false,
       this.isFavourite = false,
       required this.createdAt});
+
+  void update({required String title, String? description}) {
+    this.title = title;
+    if (description != null) {
+      this.description = description;
+    }
+  }
 }
