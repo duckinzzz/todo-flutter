@@ -1,69 +1,56 @@
 import 'package:flutter/material.dart';
-import 'package:todo/models/category.dart';
-import 'package:todo/models/task.dart';
-import 'package:todo/screens/task_list_screen.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:todo/domain/entities/category.dart';
+import 'package:todo/presentation/blocs/category_bloc/category_bloc.dart';
+import 'package:todo/presentation/screens/task_list_screen.dart';
+import 'package:todo/core/service_locator.dart';
 import 'package:uuid/uuid.dart';
 
-class CategoryListScreen extends StatefulWidget {
+class CategoryListScreen extends StatelessWidget {
   @override
-  _CategoryListScreenState createState() => _CategoryListScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => sl<CategoryCubit>(),
+      child: CategoryListView(),
+    );
+  }
 }
 
-class _CategoryListScreenState extends State<CategoryListScreen> {
-  final List<Category> categories = [];
-  final List<Task> allTasks = [];
-
-  void addCategory(String name) {
-    setState(() {
-      categories.add(Category(id: const Uuid().v4(), name: name, createdAt: DateTime.now()));
-    });
-  }
-
-  void deleteCategory(String categoryId) {
-    setState(() {
-      categories.removeWhere((category) => category.id == categoryId);
-      allTasks.removeWhere((task) => task.categoryId == categoryId);
-    });
-  }
-
+class CategoryListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Категории'),
       ),
-      body: ListView.builder(
-        itemCount: categories.length,
-        itemBuilder: (context, index) {
-          final category = categories[index];
-          return Dismissible(
-            key: Key(category.id),
-            onDismissed: (direction) {
-              deleteCategory(category.id);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('${category.name} deleted')),
+      body: BlocBuilder<CategoryCubit, CategoryState>(
+        builder: (context, state) {
+          return ListView.builder(
+            itemCount: state.categories.length,
+            itemBuilder: (context, index) {
+              final category = state.categories[index];
+              return Dismissible(
+                key: Key(category.id),
+                onDismissed: (direction) {
+                  context.read<CategoryCubit>().deleteCategory(category.id);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('${category.name} deleted')),
+                  );
+                },
+                background: Container(color: Colors.red),
+                child: ListTile(
+                  title: Text(category.name),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TaskListScreen(category: category),
+                      ),
+                    );
+                  },
+                ),
               );
             },
-            background: Container(color: Colors.red),
-            secondaryBackground: Container(
-              color: Colors.red,
-              alignment: Alignment.centerRight,
-              child: const Icon(Icons.delete, color: Colors.white),
-            ),
-            child: ListTile(
-              title: Text(category.name),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => TaskListScreen(
-                      category: category,
-                      allTasks: allTasks,
-                    ),
-                  ),
-                );
-              },
-            ),
           );
         },
       ),
@@ -74,7 +61,9 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
             builder: (context) => AddCategoryDialog(),
           );
           if (newCategoryName != null) {
-            addCategory(newCategoryName);
+            context.read<CategoryCubit>().addCategory(
+              Category(id: const Uuid().v4(), name: newCategoryName, createdAt: DateTime.now()),
+            );
           }
         },
         child: const Icon(Icons.add),

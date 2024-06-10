@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:todo/screens/category_list_screen.dart';
+import 'package:todo/presentation/screens/category_list_screen.dart';
+import 'package:todo/core/service_locator.dart';
 
 void main() {
+  setup();
   runApp(MyApp());
 }
 

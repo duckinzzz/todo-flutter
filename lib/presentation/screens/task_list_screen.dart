@@ -1,23 +1,38 @@
 import 'package:flutter/material.dart';
-import 'package:todo/models/category.dart';
-import 'package:todo/models/task.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:todo/domain/entities/category.dart';
+import 'package:todo/domain/entities/task.dart';
+import 'package:todo/presentation/blocs/task_bloc/task_bloc.dart';
+import 'package:todo/core/service_locator.dart';
 import 'package:uuid/uuid.dart';
-import 'package:todo/screens/task_detail_screen.dart';
+import 'package:todo/presentation/screens/task_detail_screen.dart';
 
-class TaskListScreen extends StatefulWidget {
+class TaskListScreen extends StatelessWidget {
   final Category category;
-  final List<Task> allTasks;
 
-  const TaskListScreen(
-      {super.key, required this.category, required this.allTasks});
+  const TaskListScreen({Key? key, required this.category}) : super(key: key);
 
   @override
-  _TaskListScreenState createState() => _TaskListScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => sl<TaskCubit>(),
+      child: TaskListView(category: category),
+    );
+  }
+}
+
+class TaskListView extends StatefulWidget {
+  final Category category;
+
+  const TaskListView({Key? key, required this.category}) : super(key: key);
+
+  @override
+  _TaskListViewState createState() => _TaskListViewState();
 }
 
 enum TaskFilter { all, completed, incomplete, favourite }
 
-class _TaskListScreenState extends State<TaskListScreen> {
+class _TaskListViewState extends State<TaskListView> {
   List<Task> filteredTasks = [];
   TaskFilter filter = TaskFilter.all;
 
@@ -28,76 +43,44 @@ class _TaskListScreenState extends State<TaskListScreen> {
   }
 
   void addTask(Task task) {
-    setState(() {
-      widget.allTasks.add(task);
-      applyFilter();
-    });
+    context.read<TaskCubit>().addTask(task);
+    applyFilter();
   }
 
   void deleteTask(String taskId) {
-    setState(() {
-      widget.allTasks.removeWhere((task) => task.id == taskId);
-      applyFilter();
-    });
+    context.read<TaskCubit>().deleteTask(taskId);
+    applyFilter();
   }
 
   void toggleCompleted(String taskId) {
-    setState(() {
-      final task = widget.allTasks.firstWhere((task) => task.id == taskId);
-      task.isCompleted = !task.isCompleted;
-    });
+    final task = context.read<TaskCubit>().state.tasks.firstWhere((task) => task.id == taskId);
+    task.isCompleted = !task.isCompleted;
+    context.read<TaskCubit>().updateTask(task);
+    applyFilter();
   }
 
   void toggleFavourite(String taskId) {
-    setState(() {
-      final task = widget.allTasks.firstWhere((task) => task.id == taskId);
-      task.isFavourite = !task.isFavourite;
-    });
-  }
-
-  void onUpdate(Task updatedTask) {
-    setState(() {
-      final index =
-          widget.allTasks.indexWhere((task) => task.id == updatedTask.id);
-      if (index != -1) {
-        widget.allTasks[index] = updatedTask;
-        applyFilter();
-      }
-    });
-  }
-
-  void onDelete(Task taskToDelete) {
-    setState(() {
-      widget.allTasks.removeWhere((task) => task.id == taskToDelete.id);
-      applyFilter();
-    });
+    final task = context.read<TaskCubit>().state.tasks.firstWhere((task) => task.id == taskId);
+    task.isFavourite = !task.isFavourite;
+    context.read<TaskCubit>().updateTask(task);
+    applyFilter();
   }
 
   void applyFilter() {
+    final tasks = context.read<TaskCubit>().state.tasks.where((task) => task.categoryId == widget.category.id).toList();
     setState(() {
       switch (filter) {
         case TaskFilter.all:
-          filteredTasks = widget.allTasks
-              .where((task) => task.categoryId == widget.category.id)
-              .toList();
+          filteredTasks = tasks;
           break;
         case TaskFilter.completed:
-          filteredTasks = widget.allTasks
-              .where((task) =>
-                  task.categoryId == widget.category.id && task.isCompleted)
-              .toList();
+          filteredTasks = tasks.where((task) => task.isCompleted).toList();
           break;
         case TaskFilter.incomplete:
-          filteredTasks = widget.allTasks
-              .where((task) =>
-                  task.categoryId == widget.category.id && !task.isCompleted)
-              .toList();
+          filteredTasks = tasks.where((task) => !task.isCompleted).toList();
           break;
         case TaskFilter.favourite:
-          filteredTasks = widget.allTasks
-              .where((task) =>
-                  task.categoryId == widget.category.id && task.isFavourite)
-              .toList();
+          filteredTasks = tasks.where((task) => task.isFavourite).toList();
           break;
       }
     });
@@ -137,71 +120,79 @@ class _TaskListScreenState extends State<TaskListScreen> {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: filteredTasks.length,
-        itemBuilder: (context, index) {
-          final task = filteredTasks[index];
-          return Dismissible(
-            key: Key(task.id),
-            onDismissed: (direction) {
-              deleteTask(task.id);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('${task.title} deleted')),
-              );
-            },
-            background: Container(color: Colors.red),
-            secondaryBackground: Container(
-              color: Colors.red,
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Icon(Icons.delete, color: Colors.white),
-                  SizedBox(width: 16),
-                ],
-              ),
-            ),
-            child: InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => TaskDetailScreen(
-                      task: task,
-                      onUpdate: onUpdate,
-                      onDelete: (task) {
-                        onDelete(task);
-                        Navigator.pop(context);
-                      },
+      body: BlocBuilder<TaskCubit, TaskState>(
+        builder: (context, state) {
+          return ListView.builder(
+            itemCount: filteredTasks.length,
+            itemBuilder: (context, index) {
+              final task = filteredTasks[index];
+              return Dismissible(
+                key: Key(task.id),
+                onDismissed: (direction) {
+                  deleteTask(task.id);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('${task.title} deleted')),
+                  );
+                },
+                background: Container(color: Colors.red),
+                secondaryBackground: Container(
+                  color: Colors.red,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Icon(Icons.delete, color: Colors.white),
+                      SizedBox(width: 16),
+                    ],
+                  ),
+                ),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TaskDetailScreen(
+                          task: task,
+                          onUpdate: (updatedTask) {
+                            context.read<TaskCubit>().updateTask(updatedTask);
+                            applyFilter();
+                          },
+                          onDelete: (taskToDelete) {
+                            context.read<TaskCubit>().deleteTask(taskToDelete.id);
+                            Navigator.pop(context);
+                          },
+                        ),
+                      ),
+                    );
+                  },
+
+                  child: ListTile(
+                    title: Text(task.title),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(task.isCompleted
+                              ? Icons.check_box
+                              : Icons.check_box_outline_blank),
+                          onPressed: () => toggleCompleted(task.id),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                              task.isFavourite ? Icons.star : Icons.star_border),
+                          onPressed: () => toggleFavourite(task.id),
+                        ),
+                      ],
                     ),
                   ),
-                );
-              },
-              child: ListTile(
-                title: Text(task.title),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: Icon(task.isCompleted
-                          ? Icons.check_box
-                          : Icons.check_box_outline_blank),
-                      onPressed: () => toggleCompleted(task.id),
-                    ),
-                    IconButton(
-                      icon: Icon(
-                          task.isFavourite ? Icons.star : Icons.star_border),
-                      onPressed: () => toggleFavourite(task.id),
-                    ),
-                  ],
                 ),
-              ),
-            ),
+              );
+            },
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          final newTask = await showDialog<Task>(
+          final newTask = await showDialog<Task?>(
             context: context,
             builder: (context) => AddTaskDialog(categoryId: widget.category.id),
           );

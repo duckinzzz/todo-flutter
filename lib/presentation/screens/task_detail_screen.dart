@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:todo/models/task.dart';
+import 'package:todo/domain/entities/task.dart';
 
 class TaskDetailScreen extends StatefulWidget {
   final Task task;
-  final Function(Task) onUpdate;
-  final Function(Task) onDelete;
+  final void Function(Task) onUpdate;
+  final void Function(Task) onDelete;
 
   const TaskDetailScreen({
-    super.key,
+    Key? key,
     required this.task,
     required this.onUpdate,
     required this.onDelete,
-  });
+  }) : super(key: key);
 
   @override
   _TaskDetailScreenState createState() => _TaskDetailScreenState();
@@ -25,8 +25,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.task.title);
-    _descriptionController =
-        TextEditingController(text: widget.task.description);
+    _descriptionController = TextEditingController(text: widget.task.description);
   }
 
   @override
