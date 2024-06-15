@@ -1,12 +1,16 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:todo/domain/entities/category.dart';
 import 'package:todo/domain/usecases/add_category.dart';
 import 'package:todo/domain/usecases/delete_category.dart';
 
-class CategoryState {
+class CategoryState extends Equatable {
   final List<Category> categories;
 
   CategoryState(this.categories);
+
+  @override
+  List<Object> get props => [categories];
 }
 
 class CategoryCubit extends Cubit<CategoryState> {

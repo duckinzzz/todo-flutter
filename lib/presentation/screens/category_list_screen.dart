@@ -25,6 +25,8 @@ class CategoryListView extends StatelessWidget {
       ),
       body: BlocBuilder<CategoryCubit, CategoryState>(
         builder: (context, state) {
+          final categoryCubit = context.watch<CategoryCubit>();
+
           return ListView.builder(
             itemCount: state.categories.length,
             itemBuilder: (context, index) {
@@ -32,7 +34,7 @@ class CategoryListView extends StatelessWidget {
               return Dismissible(
                 key: Key(category.id),
                 onDismissed: (direction) {
-                  context.read<CategoryCubit>().deleteCategory(category.id);
+                  categoryCubit.deleteCategory(category.id);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('${category.name} deleted')),
                   );
@@ -44,7 +46,8 @@ class CategoryListView extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => TaskListScreen(category: category),
+                        builder: (context) =>
+                            TaskListScreen(category: category),
                       ),
                     );
                   },
@@ -62,8 +65,11 @@ class CategoryListView extends StatelessWidget {
           );
           if (newCategoryName != null) {
             context.read<CategoryCubit>().addCategory(
-              Category(id: const Uuid().v4(), name: newCategoryName, createdAt: DateTime.now()),
-            );
+                  Category(
+                      id: const Uuid().v4(),
+                      name: newCategoryName,
+                      createdAt: DateTime.now()),
+                );
           }
         },
         child: const Icon(Icons.add),

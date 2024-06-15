@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:todo/domain/entities/task.dart';
+import 'package:todo/presentation/blocs/task_bloc/task_bloc.dart';
 
 class TaskDetailScreen extends StatefulWidget {
   final Task task;
-  final void Function(Task) onUpdate;
-  final void Function(Task) onDelete;
+  final TaskCubit taskCubit;
 
   const TaskDetailScreen({
     Key? key,
     required this.task,
-    required this.onUpdate,
-    required this.onDelete,
+    required this.taskCubit,
   }) : super(key: key);
 
   @override
@@ -42,12 +41,12 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
         description: _descriptionController.text,
       );
     });
-    widget.onUpdate(widget.task);
+    widget.taskCubit.updateTask(widget.task);
     Navigator.of(context).pop();
   }
 
   void _deleteTask() {
-    widget.onDelete(widget.task);
+    widget.taskCubit.deleteTask(widget.task.id);
     Navigator.of(context).pop();
   }
 

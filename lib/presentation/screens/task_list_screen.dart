@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 import 'package:todo/domain/entities/category.dart';
 import 'package:todo/domain/entities/task.dart';
 import 'package:todo/presentation/blocs/task_bloc/task_bloc.dart';
-import 'package:todo/core/service_locator.dart';
 import 'package:uuid/uuid.dart';
 import 'package:todo/presentation/screens/task_detail_screen.dart';
 
@@ -14,8 +14,8 @@ class TaskListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<TaskCubit>(),
+    return BlocProvider.value(
+      value: context.read<TaskCubit>(),
       child: TaskListView(category: category),
     );
   }
@@ -33,57 +33,45 @@ class TaskListView extends StatefulWidget {
 enum TaskFilter { all, completed, incomplete, favourite }
 
 class _TaskListViewState extends State<TaskListView> {
-  List<Task> filteredTasks = [];
   TaskFilter filter = TaskFilter.all;
 
   @override
   void initState() {
     super.initState();
-    applyFilter();
   }
 
   void addTask(Task task) {
     context.read<TaskCubit>().addTask(task);
-    applyFilter();
   }
 
   void deleteTask(String taskId) {
     context.read<TaskCubit>().deleteTask(taskId);
-    applyFilter();
   }
 
   void toggleCompleted(String taskId) {
     final task = context.read<TaskCubit>().state.tasks.firstWhere((task) => task.id == taskId);
     task.isCompleted = !task.isCompleted;
     context.read<TaskCubit>().updateTask(task);
-    applyFilter();
   }
 
   void toggleFavourite(String taskId) {
     final task = context.read<TaskCubit>().state.tasks.firstWhere((task) => task.id == taskId);
     task.isFavourite = !task.isFavourite;
     context.read<TaskCubit>().updateTask(task);
-    applyFilter();
   }
 
-  void applyFilter() {
-    final tasks = context.read<TaskCubit>().state.tasks.where((task) => task.categoryId == widget.category.id).toList();
-    setState(() {
-      switch (filter) {
-        case TaskFilter.all:
-          filteredTasks = tasks;
-          break;
-        case TaskFilter.completed:
-          filteredTasks = tasks.where((task) => task.isCompleted).toList();
-          break;
-        case TaskFilter.incomplete:
-          filteredTasks = tasks.where((task) => !task.isCompleted).toList();
-          break;
-        case TaskFilter.favourite:
-          filteredTasks = tasks.where((task) => task.isFavourite).toList();
-          break;
-      }
-    });
+  List<Task> applyFilter(TaskState state) {
+    final tasks = state.tasks.where((task) => task.categoryId == widget.category.id).toList();
+    switch (filter) {
+      case TaskFilter.all:
+        return tasks;
+      case TaskFilter.completed:
+        return tasks.where((task) => task.isCompleted).toList();
+      case TaskFilter.incomplete:
+        return tasks.where((task) => !task.isCompleted).toList();
+      case TaskFilter.favourite:
+        return tasks.where((task) => task.isFavourite).toList();
+    }
   }
 
   @override
@@ -96,7 +84,6 @@ class _TaskListViewState extends State<TaskListView> {
             onSelected: (TaskFilter selectedFilter) {
               setState(() {
                 filter = selectedFilter;
-                applyFilter();
               });
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<TaskFilter>>[
@@ -122,6 +109,7 @@ class _TaskListViewState extends State<TaskListView> {
       ),
       body: BlocBuilder<TaskCubit, TaskState>(
         builder: (context, state) {
+          final filteredTasks = applyFilter(state);
           return ListView.builder(
             itemCount: filteredTasks.length,
             itemBuilder: (context, index) {
@@ -133,6 +121,9 @@ class _TaskListViewState extends State<TaskListView> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('${task.title} deleted')),
                   );
+                  setState(() {
+                    filteredTasks.removeAt(index);
+                  });
                 },
                 background: Container(color: Colors.red),
                 secondaryBackground: Container(
@@ -152,19 +143,11 @@ class _TaskListViewState extends State<TaskListView> {
                       MaterialPageRoute(
                         builder: (context) => TaskDetailScreen(
                           task: task,
-                          onUpdate: (updatedTask) {
-                            context.read<TaskCubit>().updateTask(updatedTask);
-                            applyFilter();
-                          },
-                          onDelete: (taskToDelete) {
-                            context.read<TaskCubit>().deleteTask(taskToDelete.id);
-                            Navigator.pop(context);
-                          },
+                          taskCubit: context.read<TaskCubit>(),
                         ),
                       ),
                     );
                   },
-
                   child: ListTile(
                     title: Text(task.title),
                     trailing: Row(
