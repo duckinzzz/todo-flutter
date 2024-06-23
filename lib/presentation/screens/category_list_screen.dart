@@ -19,14 +19,14 @@ class CategoryListScreen extends StatelessWidget {
 class CategoryListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final categoryCubit = context.read<CategoryCubit>();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Категории'),
       ),
       body: BlocBuilder<CategoryCubit, CategoryState>(
+        bloc: categoryCubit,
         builder: (context, state) {
-          final categoryCubit = context.watch<CategoryCubit>();
-
           return ListView.builder(
             itemCount: state.categories.length,
             itemBuilder: (context, index) {
@@ -65,11 +65,11 @@ class CategoryListView extends StatelessWidget {
           );
           if (newCategoryName != null) {
             context.read<CategoryCubit>().addCategory(
-                  Category(
-                      id: const Uuid().v4(),
-                      name: newCategoryName,
-                      createdAt: DateTime.now()),
-                );
+              Category(
+                  id: const Uuid().v4(),
+                  name: newCategoryName,
+                  createdAt: DateTime.now()),
+            );
           }
         },
         child: const Icon(Icons.add),
