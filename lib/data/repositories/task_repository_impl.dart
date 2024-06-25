@@ -1,31 +1,65 @@
-import 'package:todo/data/datasources/task_data_source.dart';
-import 'package:todo/data/models/task_model.dart';
-import 'package:todo/domain/entities/task.dart';
+import 'package:todo/data/datasources/database.dart' as db;
+import 'package:todo/domain/entities/task.dart' as domain;
 import 'package:todo/domain/repositories/task_repository.dart';
 
 class TaskRepositoryImpl implements TaskRepository {
-  final TaskDataSource dataSource = TaskDataSource();
+  final db.AppDatabase database;
+
+  TaskRepositoryImpl(this.database);
 
   @override
-  void addTask(Task task) {
-    dataSource.addTask(TaskModel.fromEntity(task));
+  Future<void> addTask(domain.Task task) async {
+    final dbTask = db.Task(
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      categoryId: task.categoryId,
+      isCompleted: task.isCompleted,
+      isFavourite: task.isFavourite,
+      createdAt: task.createdAt,
+    );
+    await database.insertTask(dbTask);
   }
 
   @override
-  void deleteTask(String id) {
-    dataSource.deleteTask(id);
+  Future<void> deleteTask(String id) async {
+    final dbTask = db.Task(
+      id: id,
+      title: '',
+      description: '',
+      categoryId: '',
+      isCompleted: false,
+      isFavourite: false,
+      createdAt: DateTime.now(),
+    );
+    await database.deleteTask(dbTask);
   }
 
   @override
-  void updateTask(Task task) {
-    dataSource.updateTask(TaskModel.fromEntity(task));
+  Future<void> updateTask(domain.Task task) async {
+    final dbTask = db.Task(
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      categoryId: task.categoryId,
+      isCompleted: task.isCompleted,
+      isFavourite: task.isFavourite,
+      createdAt: task.createdAt,
+    );
+    await database.updateTask(dbTask);
   }
 
   @override
-  List<Task> getTasksByCategoryId(String categoryId) {
-    return dataSource
-        .getTasksByCategoryId(categoryId)
-        .map((model) => model.toEntity())
-        .toList();
+  Future<List<domain.Task>> getTasksByCategoryId(String categoryId) async {
+    final tasks = await database.getTasksByCategoryId(categoryId);
+    return tasks.map((task) => domain.Task(
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      categoryId: task.categoryId,
+      isCompleted: task.isCompleted,
+      isFavourite: task.isFavourite,
+      createdAt: task.createdAt,
+    )).toList();
   }
 }

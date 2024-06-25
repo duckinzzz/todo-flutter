@@ -1,23 +1,39 @@
-import 'package:todo/data/datasources/category_data_source.dart';
-import 'package:todo/data/models/category_model.dart';
-import 'package:todo/domain/entities/category.dart';
+import 'package:todo/data/datasources/database.dart' as db;
+import 'package:todo/domain/entities/category.dart' as domain;
 import 'package:todo/domain/repositories/category_repository.dart';
 
 class CategoryRepositoryImpl implements CategoryRepository {
-  final CategoryDataSource dataSource = CategoryDataSource();
+  final db.AppDatabase database;
+
+  CategoryRepositoryImpl(this.database);
 
   @override
-  void addCategory(Category category) {
-    dataSource.addCategory(CategoryModel.fromEntity(category));
+  Future<void> addCategory(domain.Category category) async {
+    final dbCategory = db.Category(
+      id: category.id,
+      name: category.name,
+      createdAt: category.createdAt,
+    );
+    await database.insertCategory(dbCategory);
   }
 
   @override
-  void deleteCategory(String id) {
-    dataSource.deleteCategory(id);
+  Future<void> deleteCategory(String id) async {
+    final dbCategory = db.Category(
+      id: id,
+      name: '',
+      createdAt: DateTime.now(),
+    );
+    await database.deleteCategory(dbCategory);
   }
 
   @override
-  List<Category> getCategories() {
-    return dataSource.getCategories().map((model) => model.toEntity()).toList();
+  Future<List<domain.Category>> getCategories() async {
+    final categories = await database.getAllCategories();
+    return categories.map((category) => domain.Category(
+      id: category.id,
+      name: category.name,
+      createdAt: category.createdAt,
+    )).toList();
   }
 }
