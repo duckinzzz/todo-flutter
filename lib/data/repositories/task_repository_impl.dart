@@ -1,15 +1,16 @@
-import 'package:todo/data/datasources/database.dart' as db;
-import 'package:todo/domain/entities/task.dart' as domain;
+import 'package:todo/data/datasources/task_data_source.dart';
+import 'package:todo/domain/entities/task.dart';
 import 'package:todo/domain/repositories/task_repository.dart';
+import 'package:todo/data/models/task_model.dart';
 
 class TaskRepositoryImpl implements TaskRepository {
-  final db.AppDatabase database;
+  final TaskDataSource dataSource;
 
-  TaskRepositoryImpl(this.database);
+  const TaskRepositoryImpl(this.dataSource);
 
   @override
-  Future<void> addTask(domain.Task task) async {
-    final dbTask = db.Task(
+  Future<void> addTask(Task task) async {
+    final taskModel = TaskModel(
       id: task.id,
       title: task.title,
       description: task.description,
@@ -18,26 +19,17 @@ class TaskRepositoryImpl implements TaskRepository {
       isFavourite: task.isFavourite,
       createdAt: task.createdAt,
     );
-    await database.insertTask(dbTask);
+    await dataSource.addTask(taskModel);
   }
 
   @override
   Future<void> deleteTask(String id) async {
-    final dbTask = db.Task(
-      id: id,
-      title: '',
-      description: '',
-      categoryId: '',
-      isCompleted: false,
-      isFavourite: false,
-      createdAt: DateTime.now(),
-    );
-    await database.deleteTask(dbTask);
+    await dataSource.deleteTask(id);
   }
 
   @override
-  Future<void> updateTask(domain.Task task) async {
-    final dbTask = db.Task(
+  Future<void> updateTask(Task task) async {
+    final taskModel = TaskModel(
       id: task.id,
       title: task.title,
       description: task.description,
@@ -46,20 +38,20 @@ class TaskRepositoryImpl implements TaskRepository {
       isFavourite: task.isFavourite,
       createdAt: task.createdAt,
     );
-    await database.updateTask(dbTask);
+    await dataSource.updateTask(taskModel);
   }
 
   @override
-  Future<List<domain.Task>> getTasksByCategoryId(String categoryId) async {
-    final tasks = await database.getTasksByCategoryId(categoryId);
-    return tasks.map((task) => domain.Task(
-      id: task.id,
-      title: task.title,
-      description: task.description,
-      categoryId: task.categoryId,
-      isCompleted: task.isCompleted,
-      isFavourite: task.isFavourite,
-      createdAt: task.createdAt,
+  Future<List<Task>> getTasksByCategoryId(String categoryId) async {
+    final tasks = await dataSource.getTasksByCategoryId(categoryId);
+    return tasks.map((taskModel) => Task(
+      id: taskModel.id,
+      title: taskModel.title,
+      description: taskModel.description,
+      categoryId: taskModel.categoryId,
+      isCompleted: taskModel.isCompleted,
+      isFavourite: taskModel.isFavourite,
+      createdAt: taskModel.createdAt,
     )).toList();
   }
 }

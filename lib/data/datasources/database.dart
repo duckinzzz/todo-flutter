@@ -3,6 +3,8 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:todo/data/models/category_model.dart';
+import 'package:todo/data/models/task_model.dart';
 
 part 'database.g.dart';
 
@@ -28,38 +30,6 @@ class TaskTable extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-class Category {
-  final String id;
-  final String name;
-  final DateTime createdAt;
-
-  Category({
-    required this.id,
-    required this.name,
-    required this.createdAt,
-  });
-}
-
-class Task {
-  final String id;
-  final String title;
-  final String description;
-  final String categoryId;
-  final bool isCompleted;
-  final bool isFavourite;
-  final DateTime createdAt;
-
-  Task({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.categoryId,
-    required this.isCompleted,
-    required this.isFavourite,
-    required this.createdAt,
-  });
-}
-
 @DriftDatabase(tables: [CategoryTable, TaskTable])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -67,22 +37,22 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 1;
 
-  Future<List<Category>> getAllCategories() => select(categoryTable).map((row) => Category(
+  Future<List<CategoryModel>> getAllCategories() => select(categoryTable).map((row) => CategoryModel(
     id: row.id,
     name: row.name,
     createdAt: row.createdAt,
   )).get();
 
-  Future<void> insertCategory(Category category) => into(categoryTable).insert(CategoryTableCompanion(
+  Future<void> insertCategory(CategoryModel category) => into(categoryTable).insert(CategoryTableCompanion(
     id: Value(category.id),
     name: Value(category.name),
     createdAt: Value(category.createdAt),
   ));
 
-  Future<void> deleteCategory(Category category) => (delete(categoryTable)..where((tbl) => tbl.id.equals(category.id))).go();
+  Future<void> deleteCategory(CategoryModel category) => (delete(categoryTable)..where((tbl) => tbl.id.equals(category.id))).go();
 
-  Future<List<Task>> getTasksByCategoryId(String categoryId) =>
-      (select(taskTable)..where((t) => t.categoryId.equals(categoryId))).map((row) => Task(
+  Future<List<TaskModel>> getTasksByCategoryId(String categoryId) =>
+      (select(taskTable)..where((t) => t.categoryId.equals(categoryId))).map((row) => TaskModel(
         id: row.id,
         title: row.title,
         description: row.description,
@@ -92,7 +62,7 @@ class AppDatabase extends _$AppDatabase {
         createdAt: row.createdAt,
       )).get();
 
-  Future<void> insertTask(Task task) => into(taskTable).insert(TaskTableCompanion(
+  Future<void> insertTask(TaskModel task) => into(taskTable).insert(TaskTableCompanion(
     id: Value(task.id),
     title: Value(task.title),
     description: Value(task.description),
@@ -102,9 +72,9 @@ class AppDatabase extends _$AppDatabase {
     createdAt: Value(task.createdAt),
   ));
 
-  Future<void> deleteTask(Task task) => (delete(taskTable)..where((tbl) => tbl.id.equals(task.id))).go();
+  Future<void> deleteTask(TaskModel task) => (delete(taskTable)..where((tbl) => tbl.id.equals(task.id))).go();
 
-  Future<void> updateTask(Task task) => update(taskTable).replace(TaskTableCompanion(
+  Future<void> updateTask(TaskModel task) => update(taskTable).replace(TaskTableCompanion(
     id: Value(task.id),
     title: Value(task.title),
     description: Value(task.description),

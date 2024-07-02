@@ -1,5 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:todo/data/datasources/database.dart';
+import 'package:todo/data/datasources/category_data_source.dart';
+import 'package:todo/data/datasources/task_data_source.dart';
 import 'package:todo/data/repositories/category_repository_impl.dart';
 import 'package:todo/data/repositories/task_repository_impl.dart';
 import 'package:todo/domain/repositories/category_repository.dart';
@@ -20,9 +22,13 @@ void setup() {
   // Database
   sl.registerLazySingleton(() => database);
 
+  // Data Sources
+  sl.registerLazySingleton<CategoryDataSource>(() => CategoryDataSourceImpl(database));
+  sl.registerLazySingleton<TaskDataSource>(() => TaskDataSourceImpl(database));
+
   // Repositories
-  sl.registerLazySingleton<CategoryRepository>(() => CategoryRepositoryImpl(database));
-  sl.registerLazySingleton<TaskRepository>(() => TaskRepositoryImpl(database));
+  sl.registerLazySingleton<CategoryRepository>(() => CategoryRepositoryImpl(sl<CategoryDataSource>()));
+  sl.registerLazySingleton<TaskRepository>(() => TaskRepositoryImpl(sl<TaskDataSource>()));
 
   // Use cases
   sl.registerLazySingleton(() => AddCategory(sl()));
